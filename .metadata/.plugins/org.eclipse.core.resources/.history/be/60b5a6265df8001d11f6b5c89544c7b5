@@ -1,0 +1,28 @@
+package com.nexos.credibanco.request;
+
+import javax.validation.constraints.NotBlank;
+
+
+public class TarjetaRequest {
+
+	@NotBlank
+    @NotNull
+    private String nombreTitular;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    @NotNull
+    private LocalDate fechaCreacion;
+
+    @NotNull
+    private BigDecimal saldo;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private EstadoTarjeta estado;
+
+    @NotNull
+    private Boolean bloqueada;
+
+	
+	
+}

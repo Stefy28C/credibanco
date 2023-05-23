@@ -1,0 +1,9 @@
+package com.nexos.credibanco.service;
+
+import com.nexos.credibanco.repository.ITransaccionRepository;
+
+public class TransaccionService {
+	
+	private ITransaccionRepository iTransaccionRepository;
+
+}

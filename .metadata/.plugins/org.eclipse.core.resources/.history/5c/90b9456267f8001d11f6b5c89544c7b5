@@ -1,0 +1,137 @@
+package com.nexos.credibanco.resource;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.repository.ITarjetaRepository;
+
+@RestController
+@RequestMapping("/card")
+public class TarjetaResource {
+
+	@Autowired
+	private ITarjetaRepository iTarjetaRepository;
+
+	private static final Pattern ID_PRODUCTO_PATTERN = Pattern.compile("^\\d{6}$");
+
+	
+	//Generar número de tarjeta
+	@GetMapping("/{productId}/number")
+	public ResponseEntity<?> generarNumeroTarjeta(@PathVariable String productId, @RequestParam String nombreTitular) {
+
+		if (!ID_PRODUCTO_PATTERN.matcher(productId).matches()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "El ID del producto debe contener solo 6 dígitos numéricos.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Tarjeta nuevaTarjeta = new Tarjeta(productId, nombreTitular);
+		Tarjeta tarjetaGuardada = iTarjetaRepository.save(nuevaTarjeta);
+		return ResponseEntity.ok(tarjetaGuardada);
+	}
+
+	
+	//. Activar tarjeta
+	
+	@PostMapping("/enroll")
+	public ResponseEntity<?> activarTarjeta(@RequestBody Map<String, String> requestBody) {
+		String numeroTarjeta = requestBody.get("numeroTarjeta");
+		if (numeroTarjeta == null || numeroTarjeta.trim().isEmpty()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "numeroTarjeta es requerido.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(numeroTarjeta);
+		if (!tarjetaOptional.isPresent()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "Tarjeta no encontrada.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Tarjeta tarjeta = tarjetaOptional.get();
+		tarjeta.activarTarjeta();
+		iTarjetaRepository.save(tarjeta);
+
+		return ResponseEntity.ok("Tarjeta activada exitosamente.");
+	}
+
+	
+	//Bloquear tarjeta
+
+	@DeleteMapping("/{cardId}")
+	public ResponseEntity<?> bloquearTarjeta(@PathVariable Long cardId) {
+		Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findById(cardId);
+		if (!tarjetaOptional.isPresent()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "Tarjeta no encontrada.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Tarjeta tarjeta = tarjetaOptional.get();
+		tarjeta.bloquearTarjeta();
+		iTarjetaRepository.save(tarjeta);
+
+		return ResponseEntity.ok("Tarjeta bloqueada exitosamente.");
+	}
+	
+	//4. Recargar saldo
+	
+	@PostMapping("/balance")
+	public ResponseEntity<?> recargarSaldo(@RequestBody Map<String, String> requestBody) {
+	    String numeroTarjeta = requestBody.get("numeroTarjeta");
+	    String balance = requestBody.get("saldo");
+
+	    if (numeroTarjeta == null || numeroTarjeta.trim().isEmpty()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "numeroTarjeta es requerido.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    if (balance == null || balance.trim().isEmpty()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "balance es requerido.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    BigDecimal balanceRecarga;
+	    try {
+	        balanceRecarga = new BigDecimal(balance);
+	    } catch (NumberFormatException e) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "El valor del balance no es válido.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(numeroTarjeta);
+	    if (!tarjetaOptional.isPresent()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "Tarjeta no encontrada.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Tarjeta tarjeta = tarjetaOptional.get();
+	    tarjeta.setSaldo(tarjeta.getSaldo().add(balanceRecarga));
+	    iTarjetaRepository.save(tarjeta);
+
+	    return ResponseEntity.ok("Saldo recargado exitosamente.");
+	}
+
+
+
+}

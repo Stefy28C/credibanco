@@ -1,0 +1,185 @@
+package com.nexos.credibanco.entity;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Random;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "Tarjeta")
+public class Tarjeta {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id_tarjeta")
+	private Long id;
+
+	@Column(name = "id_producto")
+	private String idProducto;
+	@Column(name = "numero_tarjeta")
+	private String numeroTarjeta;
+
+	@Column(name = "nombre_titular")
+	private String nombreTitular;
+
+	@Column(name = "fecha_creacion")
+	private LocalDate fechaCreacion;
+
+	@Column(name = "fecha_vencimiento")
+	private LocalDate fechaVencimiento;
+
+	@Column(name = "saldo")
+	private BigDecimal saldo;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "estado")
+	private EstadoTarjeta estado;
+
+	@Column(name = "bloqueada")
+	private Boolean bloqueada;
+
+	private String moneda;
+	
+	public Tarjeta() {
+		 
+	}
+
+	public void bloquearTarjeta() {
+	    this.bloqueada = true;
+	}
+
+	public void desbloquearTarjeta() {
+	    this.bloqueada = false;
+	}
+	public Tarjeta(String idProducto, String nombreTitular) {
+
+		this.idProducto = idProducto;
+		this.nombreTitular = nombreTitular;
+		this.numeroTarjeta = generarNumeroTarjeta(idProducto);
+		this.fechaCreacion = LocalDate.now();
+		this.fechaVencimiento = generarFechaVencimiento();
+		this.moneda = "USD";
+		this.estado = EstadoTarjeta.INACTIVO;
+	    this.bloqueada = false;
+	    this.saldo=BigDecimal.ZERO;
+	}
+
+	public static String generarNumeroTarjeta(String idProducto) {
+		Random random = new Random();
+		StringBuilder numeroTarjeta = new StringBuilder();
+
+		// Verificar si idProducto es null y asignar un valor predeterminado en caso de
+		// que lo sea
+		String idProductoNotNull = idProducto != null ? idProducto : "000000";
+
+		// Agregar el idProducto como los primeros 6 dígitos de la tarjeta
+		numeroTarjeta.append(idProductoNotNull);
+
+		// Generar los 10 dígitos aleatorios restantes
+		for (int i = 0; i < 10; i++) {
+			numeroTarjeta.append(random.nextInt(10));
+		}
+
+		return numeroTarjeta.toString();
+	}
+
+	// Implementa la lógica para generar la fecha de vencimiento según los
+	// requerimientos de Bank Inc.
+	public LocalDate generarFechaVencimiento() {
+
+		LocalDate currentDate = LocalDate.now();
+		LocalDate expirationDate = currentDate.plusYears(3); // Asumiendo que las tarjetas expiran en 3 años
+		return expirationDate;
+	}
+
+	// Cambiar el estado de la tarjeta
+	public void activarTarjeta() {
+		this.estado = EstadoTarjeta.ACTIVO;
+	}
+
+	public Tarjeta(Long id, String idProducto, String nombreTitular, LocalDate fechaCreacion,
+			LocalDate fechaVencimiento, BigDecimal saldo, EstadoTarjeta estado, Boolean bloqueada, String moneda) {
+		super();
+		this.id = id;
+		this.idProducto = idProducto;
+		this.nombreTitular = nombreTitular;
+		this.fechaCreacion = fechaCreacion;
+		this.fechaVencimiento = fechaVencimiento;
+		this.saldo = saldo;
+		this.estado = estado;
+		this.bloqueada = bloqueada;
+		this.moneda = moneda;
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getIdProducto() {
+		return idProducto;
+	}
+
+	public void setIdProducto(String idProducto) {
+		this.idProducto = idProducto;
+	}
+
+	public String getNombreTitular() {
+		return nombreTitular;
+	}
+
+	public void setNombreTitular(String nombreTitular) {
+		this.nombreTitular = nombreTitular;
+	}
+
+	public LocalDate getFechaCreacion() {
+		return fechaCreacion;
+	}
+
+	public void setFechaCreacion(LocalDate fechaCreacion) {
+		this.fechaCreacion = fechaCreacion;
+	}
+
+	public LocalDate getFechaVencimiento() {
+		return fechaVencimiento;
+	}
+
+	public void setFechaVencimiento(LocalDate fechaVencimiento) {
+		this.fechaVencimiento = fechaVencimiento;
+	}
+
+	public BigDecimal getSaldo() {
+		return saldo;
+	}
+
+	public void setSaldo(BigDecimal saldo) {
+		this.saldo = saldo;
+	}
+
+	public EstadoTarjeta getEstado() {
+		return estado;
+	}
+
+	public void setEstado(EstadoTarjeta estado) {
+		this.estado = estado;
+	}
+
+	public Boolean getBloqueada() {
+		return bloqueada;
+	}
+
+	public void setBloqueada(Boolean bloqueada) {
+		this.bloqueada = bloqueada;
+	}
+
+	public String getMoneda() {
+		return moneda;
+	}
+
+	public void setMoneda(String moneda) {
+		this.moneda = moneda;
+	}
+
+}

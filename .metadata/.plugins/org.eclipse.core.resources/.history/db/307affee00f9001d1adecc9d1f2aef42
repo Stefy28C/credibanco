@@ -1,0 +1,19 @@
+package com.nexos.credibanco.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.repository.ITarjetaRepository;
+
+public class TarjetaService {
+	 @Autowired
+	    private ITarjetaRepository tarjetaRepository;
+	 
+	 // Métodos que implementan la lógica de negocio relacionada con Tarjeta
+	// Servicio TarjetaService
+	 public Tarjeta crearTarjeta(String idProducto, String nombreTitular) {
+	     Tarjeta nuevaTarjeta = new Tarjeta(idProducto, nombreTitular);
+	     // Implementa la lógica para guardar la tarjeta en la base de datos si es necesario
+	     return nuevaTarjeta;
+	 }
+}

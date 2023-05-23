@@ -1,0 +1,186 @@
+package com.nexos.credibanco.resource;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nexos.credibanco.dto.ActivarTarjetaDTO;
+import com.nexos.credibanco.dto.RecargarSaldoDTO;
+import com.nexos.credibanco.entity.EstadoTarjeta;
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.repository.ITarjetaRepository;
+import com.nexos.credibanco.service.TarjetaService;
+
+@RestController
+@RequestMapping("/card")
+public class TarjetaResource {
+
+	@Autowired
+	private ITarjetaRepository iTarjetaRepository;
+	@Autowired
+    private TarjetaService tarjetaService;
+	
+	
+	private static final Pattern ID_PRODUCTO_PATTERN = Pattern.compile("^\\d{6}$");
+
+	// Generar número de tarjeta
+	@GetMapping("/{productId}/number")
+	public ResponseEntity<?> generarNumeroTarjeta(@PathVariable String productId, @RequestParam String nombreTitular) {
+
+	    if (!ID_PRODUCTO_PATTERN.matcher(productId).matches()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "El ID del producto debe contener solo 6 dígitos numéricos.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Tarjeta nuevaTarjeta = tarjetaService.crearTarjeta(productId, nombreTitular);
+	    Tarjeta tarjetaGuardada = tarjetaService.guardar(nuevaTarjeta);
+	    return ResponseEntity.ok(tarjetaGuardada);
+	}
+
+
+	// . Activar tarjeta
+
+	@PostMapping("/enroll")
+	public ResponseEntity<?> activarTarjeta(@RequestBody ActivarTarjetaDTO activarTarjetaDTO) {
+	    String numeroTarjeta = activarTarjetaDTO.getNumeroTarjeta();
+	    if (numeroTarjeta == null || numeroTarjeta.trim().isEmpty()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "numeroTarjeta es requerido.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(activarTarjetaDTO.getNumeroTarjeta());
+	    if (!tarjetaOptional.isPresent()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "Tarjeta no encontrada.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Tarjeta tarjeta = tarjetaOptional.get();
+	    tarjeta.activarTarjeta();
+	    iTarjetaRepository.save(tarjeta);
+
+	    return ResponseEntity.ok("Tarjeta activada exitosamente.");
+	}
+
+
+	// Bloquear tarjeta
+
+	@DeleteMapping("/{cardId}")
+	public ResponseEntity<?> bloquearTarjeta(@PathVariable Long cardId) {
+		Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findById(cardId);
+		if (!tarjetaOptional.isPresent()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "Tarjeta no encontrada.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Tarjeta tarjeta = tarjetaOptional.get();
+		tarjeta.bloquearTarjeta();
+		iTarjetaRepository.save(tarjeta);
+
+		return ResponseEntity.ok("Tarjeta bloqueada exitosamente.");
+	}
+	
+	//desbloquear tarjeta
+	
+	@PutMapping("/{cardId}/unblock")
+	public ResponseEntity<?> desbloquearTarjeta(@PathVariable Long cardId) {
+	    Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findById(cardId);
+	    if (!tarjetaOptional.isPresent()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "Tarjeta no encontrada.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Tarjeta tarjeta = tarjetaOptional.get();
+	    tarjeta.desbloquearTarjeta();
+	    iTarjetaRepository.save(tarjeta);
+
+	    return ResponseEntity.ok("Tarjeta desbloqueada exitosamente.");
+	}
+
+	// 4. Recargar saldo
+
+	@PostMapping("/balance")
+	public ResponseEntity<?> recargarSaldo(@RequestBody RecargarSaldoDTO recargarSaldoDTO) {
+	    String numeroTarjeta = recargarSaldoDTO.getNumeroTarjeta();
+	    BigDecimal balanceRecarga = recargarSaldoDTO.getSaldo();
+
+	    if (numeroTarjeta == null || numeroTarjeta.trim().isEmpty()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "numeroTarjeta es requerido.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    if (balanceRecarga == null || balanceRecarga.compareTo(BigDecimal.ZERO) <= 0) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "El valor de la recarga debe ser mayor que cero.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(recargarSaldoDTO.getNumeroTarjeta());
+	    if (!tarjetaOptional.isPresent()) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "Tarjeta no encontrada.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    Tarjeta tarjeta = tarjetaOptional.get();
+
+	    if (tarjeta.getBloqueada() || tarjeta.getEstado() == EstadoTarjeta.INACTIVO) {
+	        Map<String, String> error = new HashMap<>();
+	        error.put("mensaje", "Lo sentimos, la tarjeta está bloqueada o inactiva.");
+	        return ResponseEntity.badRequest().body(error);
+	    }
+
+	    BigDecimal saldoActual = tarjeta.getSaldo();
+	    BigDecimal saldoNuevo = saldoActual.add(balanceRecarga);
+	    tarjeta.setSaldo(saldoNuevo);
+	    iTarjetaRepository.save(tarjeta);
+
+	    return ResponseEntity.ok("Saldo recargado exitosamente.");
+	}
+
+
+
+	// consultar el saldo de una tarjeta
+	@GetMapping("/balance/{numeroTarjeta}")
+	public ResponseEntity<?> consultarSaldo(@PathVariable("numeroTarjeta") String numeroTarjeta) {
+
+		if (numeroTarjeta == null || numeroTarjeta.trim().isEmpty()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "numeroTarjeta es requerido.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(numeroTarjeta);
+		if (!tarjetaOptional.isPresent()) {
+			Map<String, String> error = new HashMap<>();
+			error.put("mensaje", "Tarjeta no encontrada.");
+			return ResponseEntity.badRequest().body(error);
+		}
+
+		Tarjeta tarjeta = tarjetaOptional.get();
+		BigDecimal saldo = tarjeta.getSaldo();
+
+		return ResponseEntity.ok("El saldo de la tarjeta es: " + saldo);
+	}
+
+}

@@ -1,0 +1,50 @@
+package com.nexos.credibanco.request;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
+import com.nexos.credibanco.entity.EstadoTarjeta;
+
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+
+public class TarjetaRequest {
+
+	@NotBlank
+	@NotNull
+	private Long id;
+	@NotBlank
+	@NotNull
+	private String idProducto;
+	@NotBlank(message = "numero tarjeta es requerido.")
+	@NotNull
+	private String numeroTarjeta;
+	@NotBlank
+	@NotNull
+	private String nombreTitular;
+
+	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+	@NotNull
+	private LocalDate fechaCreacion;
+
+	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+	@NotNull
+	private LocalDate fechaVencimiento;
+	
+	@NotBlank(message = "Saldo es requerido.")
+	@NotNull
+	private BigDecimal saldo;
+
+	@NotNull
+	@Enumerated(EnumType.STRING)
+	private EstadoTarjeta estado;
+	@NotBlank
+	@NotNull
+	private Boolean bloqueada;
+
+}

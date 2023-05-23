@@ -1,0 +1,50 @@
+package com.nexos.credibanco.resource;
+
+import java.time.LocalDateTime;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nexos.credibanco.dto.CompraDTO;
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.repository.ITarjetaRepository;
+import com.nexos.credibanco.repository.ITransaccionRepository;
+
+@RestController
+@RequestMapping("/transaction")
+public class TransaccionResource {
+	 @Autowired
+	 private ITarjetaRepository iTarjetaRepository;
+
+	    @Autowired
+	    private ITransaccionRepository iTransaccionRepository;
+	    
+	    
+	    @PostMapping("/purchase")
+	    public ResponseEntity<?> realizarCompra(@RequestBody CompraDTO compraDTO) {
+	        Tarjeta tarjeta = iTarjetaRepository.findByNumeroTarjeta(compraDTO.getNumeroTarjeta());
+	        if (tarjeta == null) {
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tarjeta no encontrada");
+	        }
+
+	        Transaccion transaccion = new Transaccion(null, tarjeta, LocalDateTime.now(), compraDTO.getMonto(), false);
+
+	        if (!transaccion.validateTransaction()) {
+	            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transacción inválida");
+	        }
+
+	        tarjeta.setSaldo(tarjeta.getSaldo().subtract(transaccion.getMonto()));
+	        iTarjetaRepository.save(tarjeta);
+	        iTransaccionRepository.save(transaccion);
+
+	        return ResponseEntity.status(HttpStatus.CREATED).body("Transacción realizada con éxito");
+	    }
+	}
+
+}

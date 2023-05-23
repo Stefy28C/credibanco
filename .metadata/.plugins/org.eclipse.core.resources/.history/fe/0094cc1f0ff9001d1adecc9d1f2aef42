@@ -1,0 +1,59 @@
+package com.nexos.credibanco;
+
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.repository.ITarjetaRepository;
+import com.nexos.credibanco.service.TarjetaService;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class TarjetaTest {
+
+    @Mock
+    private ITarjetaRepository tarjetaRepository;
+
+    @InjectMocks
+    private TarjetaService tarjetaService;
+
+    private Tarjeta tarjeta;
+
+    @BeforeEach
+    void setUp() {
+        tarjeta = new Tarjeta("123456", "John Doe");
+    }
+
+    @Test
+    void testCrearTarjeta() {
+        Tarjeta nuevaTarjeta = tarjetaService.crearTarjeta("123456", "John Doe");
+        assertNotNull(nuevaTarjeta);
+        assertEquals("123456", nuevaTarjeta.getIdProducto());
+        assertEquals("John Doe", nuevaTarjeta.getNombreTitular());
+    }
+
+    @Test
+    void testGuardar() {
+        when(tarjetaRepository.save(tarjeta)).thenReturn(tarjeta);
+        Tarjeta tarjetaGuardada = tarjetaService.guardar(tarjeta);
+        assertEquals(tarjeta, tarjetaGuardada);
+    }
+
+    @Test
+    void testActivarTarjeta() {
+        when(tarjetaRepository.save(tarjeta)).thenReturn(tarjeta);
+        Tarjeta tarjetaActivada = tarjetaService.activarTarjeta(tarjeta);
+        assertTrue(tarjetaActivada.isActivada());
+    }
+
+    // Escribe pruebas para los demás métodos de TarjetaService aquí
+
+}

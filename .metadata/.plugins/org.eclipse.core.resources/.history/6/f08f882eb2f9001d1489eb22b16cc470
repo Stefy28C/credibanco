@@ -1,0 +1,13 @@
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://34.170.134.192:3306/credibanc
+spring.datasource.username=root
+spring.datasource.password=Tefa28102003*
+
+
+#hibernate
+spring.jpa.hibernate.ddl-auto=update
+
+spring.jpa.show-sql=true
+
+spring.jpa.properties.hibernate.format_sql=true

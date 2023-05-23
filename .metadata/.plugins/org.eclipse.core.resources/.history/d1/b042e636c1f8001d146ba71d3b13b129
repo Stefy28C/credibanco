@@ -1,0 +1,5 @@
+package com.nexos.credibanco.dto;
+
+public class RecargarSaldoDTO {
+
+}

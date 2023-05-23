@@ -1,0 +1,89 @@
+package com.nexos.credibanco.resource;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.nexos.credibanco.dto.CompraDTO;
+import com.nexos.credibanco.dto.TransaccionDTO;
+import com.nexos.credibanco.entity.Tarjeta;
+import com.nexos.credibanco.entity.Transaccion;
+import com.nexos.credibanco.repository.ITarjetaRepository;
+import com.nexos.credibanco.repository.ITransaccionRepository;
+
+@RestController
+@RequestMapping("/transaction")
+public class TransaccionResource {
+	 @Autowired
+	 private ITarjetaRepository iTarjetaRepository;
+
+	    @Autowired
+	    private ITransaccionRepository iTransaccionRepository;
+	    
+	    
+	    
+	    //Hacer la compra
+	    @PostMapping("/purchase")
+	    public ResponseEntity<?> realizarCompra(@RequestBody CompraDTO compraDTO) {
+	        Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(compraDTO.getNumeroTarjeta());
+	        if (!tarjetaOptional.isPresent()) {
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tarjeta no encontrada");
+	        }
+
+	        Tarjeta tarjeta = tarjetaOptional.get(); // Obtener el objeto Tarjeta del Optional
+	        Transaccion transaccion = new Transaccion(null, tarjeta, LocalDateTime.now(), compraDTO.getMonto(), false);
+
+	        
+	        //Validaciones de la transaccion 
+	        String validationResult = transaccion.validateTransaction();
+	        if (validationResult != null) {
+	            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationResult);
+	        }
+
+	        tarjeta.setSaldo(tarjeta.getSaldo().subtract(transaccion.getMonto()));
+	        tarjeta.setUltimaTransaccion(transaccion);
+	        iTarjetaRepository.save(tarjeta);
+	        iTransaccionRepository.save(transaccion);
+
+	        return ResponseEntity.status(HttpStatus.CREATED).body("Transacción realizada con éxito");
+	    }
+	    
+	    
+	    
+	//Consultar la transacción 
+	    
+	    @GetMapping("/last-transaction/{cardNumber}")
+	    public ResponseEntity<?> consultarTransaccion(@PathVariable String cardNumber) {
+	        Optional<Tarjeta> tarjetaOptional = iTarjetaRepository.findByNumeroTarjeta(cardNumber);
+	        if (!tarjetaOptional.isPresent()) {
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tarjeta no encontrada");
+	        }
+
+	        Tarjeta tarjeta = tarjetaOptional.get();
+	        Transaccion transaccion = tarjeta.getUltimaTransaccion();
+
+	        if (transaccion == null) {
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No se encontró ninguna transacción para la tarjeta");
+	        }
+
+	        TransaccionDTO transaccionDTO = new TransaccionDTO(
+	            transaccion.getId(),
+	            transaccion.getTarjeta().getId(),
+	            transaccion.getFechaTransaccion(),
+	            transaccion.getMonto(),
+	            transaccion.isAnulada()
+	        );
+
+	        return ResponseEntity.status(HttpStatus.OK).body(transaccionDTO);
+	    }
+
+}

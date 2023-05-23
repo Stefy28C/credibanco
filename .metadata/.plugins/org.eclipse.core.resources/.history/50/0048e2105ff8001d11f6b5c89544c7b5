@@ -1,0 +1,9 @@
+package com.nexos.credibanco.request;
+import javax.validation.constraints.NotBlank;
+
+public class TarjetaRequest {
+
+	
+	
+	
+}
